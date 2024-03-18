@@ -237,7 +237,7 @@ public class BacnetServiceFutureExample {
 }
 ```
 ---
-## Use Case:
+## General Use Case:
 ```java
 import com.serotonin.bacnet4j.LocalDevice;
 import com.serotonin.bacnet4j.RemoteDevice;
@@ -290,6 +290,104 @@ public class BacnetCompleteExample {
             // Clean up resources
             localDevice.terminate();
         } catch (BACnetException | PropertyValueException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+---
+## Use Case: HAVOC Controller
+Let's create an example where we simulate discovering a remote "HVAC Controller" device and accessing its "Temperature Sensor" object to read the current temperature value. Please note that this is a simplified example for demonstration purposes, and you'll need to adjust the object types, IDs, and property identifiers based on your actual BACnet network setup.
+
+1. **Discovering Remote HVAC Controller Device (BacnetDiscoverHVACControllerExample.java):**
+```java
+import com.serotonin.bacnet4j.LocalDevice;
+import com.serotonin.bacnet4j.RemoteDevice;
+import com.serotonin.bacnet4j.exception.BACnetException;
+import com.serotonin.bacnet4j.service.unconfirmed.WhoIsRequest;
+
+public class BacnetDiscoverHVACControllerExample {
+    public static void main(String[] args) {
+        try {
+            // Create a local BACnet device with device ID 1234
+            LocalDevice localDevice = new LocalDevice(1234);
+            localDevice.initialize();
+
+            // Send a Who-Is request to discover other BACnet devices on the network
+            localDevice.sendGlobalBroadcast(new WhoIsRequest());
+
+            // Wait for a response and find the remote HVAC controller device
+            Thread.sleep(5000); // Wait for 5 seconds to receive responses
+            RemoteDevice hvacControllerDevice = null;
+            for (RemoteDevice device : localDevice.getRemoteDevices()) {
+                if (device.getObjectName().equals("HVAC Controller")) {
+                    hvacControllerDevice = device;
+                    break;
+                }
+            }
+
+            if (hvacControllerDevice != null) {
+                System.out.println("HVAC Controller Device Found: " + hvacControllerDevice);
+            } else {
+                System.out.println("HVAC Controller Device Not Found.");
+            }
+
+            // Clean up resources
+            localDevice.terminate();
+        } catch (BACnetException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+2. **Accessing Temperature Sensor Object on HVAC Controller (BacnetAccessTemperatureSensorExample.java):**
+``` java
+import com.serotonin.bacnet4j.LocalDevice;
+import com.serotonin.bacnet4j.RemoteDevice;
+import com.serotonin.bacnet4j.RemoteObject;
+import com.serotonin.bacnet4j.exception.BACnetException;
+import com.serotonin.bacnet4j.service.unconfirmed.WhoIsRequest;
+import com.serotonin.bacnet4j.type.constructed.ObjectIdentifier;
+import com.serotonin.bacnet4j.type.enumerated.ObjectType;
+import com.serotonin.bacnet4j.type.enumerated.PropertyIdentifier;
+import com.serotonin.bacnet4j.type.primitive.Real;
+
+public class BacnetAccessTemperatureSensorExample {
+    public static void main(String[] args) {
+        try {
+            // Create a local BACnet device with device ID 1234
+            LocalDevice localDevice = new LocalDevice(1234);
+            localDevice.initialize();
+
+            // Send a Who-Is request to discover other BACnet devices on the network
+            localDevice.sendGlobalBroadcast(new WhoIsRequest());
+
+            // Wait for a response and find the remote HVAC controller device
+            Thread.sleep(5000); // Wait for 5 seconds to receive responses
+            RemoteDevice hvacControllerDevice = null;
+            for (RemoteDevice device : localDevice.getRemoteDevices()) {
+                if (device.getObjectName().equals("HVAC Controller")) {
+                    hvacControllerDevice = device;
+                    break;
+                }
+            }
+
+            if (hvacControllerDevice != null) {
+                // Get the temperature sensor object from the HVAC controller device
+                ObjectIdentifier objectId = new ObjectIdentifier(ObjectType.analogInput, 1); // Assuming temperature sensor object ID is 1
+                RemoteObject temperatureSensorObject = hvacControllerDevice.getObject(objectId);
+
+                // Read the current temperature value from the sensor object
+                PropertyIdentifier propertyId = PropertyIdentifier.PRESENT_VALUE;
+                Real temperatureValue = (Real) temperatureSensorObject.readProperty(propertyId).getValue();
+                System.out.println("Current Temperature: " + temperatureValue);
+            } else {
+                System.out.println("HVAC Controller Device Not Found.");
+            }
+
+            // Clean up resources
+            localDevice.terminate();
+        } catch (BACnetException | InterruptedException e) {
             e.printStackTrace();
         }
     }
